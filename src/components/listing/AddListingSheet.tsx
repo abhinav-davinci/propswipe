@@ -15,6 +15,7 @@ import Animated, {
   runOnJS,
   interpolate,
   Extrapolation,
+  Easing,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -87,10 +88,13 @@ export function AddListingSheet({ visible, onClose }: AddListingSheetProps) {
 
   useEffect(() => {
     if (visible) {
-      translateY.value = withSpring(0, { damping: 20, stiffness: 200 });
+      translateY.value = withTiming(0, {
+        duration: 350,
+        easing: Easing.out(Easing.cubic),
+      });
       backdropOpacity.value = withTiming(1, { duration: 300 });
     } else {
-      translateY.value = withTiming(screenHeight, { duration: 250 });
+      translateY.value = withTiming(screenHeight, { duration: 250, easing: Easing.in(Easing.cubic) });
       backdropOpacity.value = withTiming(0, { duration: 250 });
     }
   }, [visible]);
@@ -130,8 +134,8 @@ export function AddListingSheet({ visible, onClose }: AddListingSheetProps) {
         backdropOpacity.value = withTiming(0, { duration: 250 });
         runOnJS(onClose)();
       } else {
-        translateY.value = withSpring(0, { damping: 20, stiffness: 200 });
-        backdropOpacity.value = withSpring(1, { damping: 20 });
+        translateY.value = withTiming(0, { duration: 250, easing: Easing.out(Easing.cubic) });
+        backdropOpacity.value = withTiming(1, { duration: 200 });
       }
     });
 

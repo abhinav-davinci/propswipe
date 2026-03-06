@@ -80,11 +80,11 @@ export default function RootLayout() {
         <Stack.Screen name="settings/edit-preferences" />
         <Stack.Screen
           name="listing/voice"
-          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+          options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
         />
         <Stack.Screen
           name="listing/manual"
-          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+          options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
         />
       </Stack>
     </GestureHandlerRootView>
