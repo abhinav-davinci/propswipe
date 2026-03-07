@@ -39,6 +39,10 @@ import {
   PenLine,
   X,
   Circle,
+  AlertCircle,
+  Camera,
+  ArrowRight,
+  ListChecks,
 } from 'lucide-react-native';
 import { colors } from '../../src/theme/colors';
 import { fontFamilies, fontSizes, lineHeights } from '../../src/theme/typography';
@@ -90,7 +94,7 @@ const REQUIRED_FIELDS = [
 
 const BOTTOM_BAR_HEIGHT = 120;
 
-type RecordingState = 'idle' | 'recording' | 'paused' | 'complete';
+type RecordingState = 'idle' | 'recording' | 'paused' | 'complete' | 'submitted';
 
 // ─── Mock transcription data ───────────────────────────────
 
@@ -700,8 +704,36 @@ function CompleteView({
           </View>
         </Animated.View>
 
+        {/* Missing fields warning banner */}
+        {missingFields.length > 0 && (
+          <Animated.View entering={FadeIn.duration(400).delay(100)}>
+            <Pressable
+              style={cs.warningBanner}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setEditSheetVisible(true);
+              }}
+            >
+              <View style={cs.warningIconCircle}>
+                <AlertCircle size={18} color={colors.warning} />
+              </View>
+              <View style={cs.warningContent}>
+                <Text style={cs.warningTitle}>
+                  {missingFields.length} field{missingFields.length > 1 ? 's' : ''} missing
+                </Text>
+                <Text style={cs.warningSubtitle}>
+                  {missingFields.map((f) => f.label.split(' (')[0]).join(', ')}
+                </Text>
+              </View>
+              <View style={cs.warningCta}>
+                <Text style={cs.warningCtaText}>Complete</Text>
+              </View>
+            </Pressable>
+          </Animated.View>
+        )}
+
         {/* Transcribed text card */}
-        <Animated.View entering={SlideInDown.duration(400).delay(100)} style={cs.card}>
+        <Animated.View entering={SlideInDown.duration(400).delay(missingFields.length > 0 ? 200 : 100)} style={cs.card}>
           <View style={cs.cardHeader}>
             <FileText size={16} color={colors.primary[600]} />
             <Text style={cs.cardTitle}>Transcribed Text</Text>
@@ -710,7 +742,7 @@ function CompleteView({
         </Animated.View>
 
         {/* Captured property details */}
-        <Animated.View entering={SlideInDown.duration(400).delay(200)} style={cs.card}>
+        <Animated.View entering={SlideInDown.duration(400).delay(missingFields.length > 0 ? 300 : 200)} style={cs.card}>
           <View style={cs.cardHeaderRow}>
             <View style={cs.cardHeader}>
               <Sparkles size={16} color={colors.accent[500]} />
@@ -825,6 +857,168 @@ function CompleteView({
   );
 }
 
+// ─── Submitted screen (screen 4) ────────────────────────────
+
+function AnimatedCheckIcon() {
+  const scale = useSharedValue(0);
+  const rotation = useSharedValue(-90);
+
+  useEffect(() => {
+    scale.value = withSpring(1, { damping: 12, stiffness: 180, mass: 0.8 });
+    rotation.value = withSpring(0, { damping: 14, stiffness: 160 });
+  }, []);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: scale.value },
+      { rotate: `${rotation.value}deg` },
+    ],
+  }));
+
+  return (
+    <Animated.View style={[ss.heroIconCircle, animStyle]}>
+      <CheckCircle2 size={32} color={colors.primary[600]} strokeWidth={2.5} />
+    </Animated.View>
+  );
+}
+
+function SubmittedView({ onDone }: { onDone: () => void }) {
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+
+  return (
+    <>
+      <ScrollView
+        style={s.scrollView}
+        contentContainerStyle={[
+          ss.scrollContent,
+          { paddingBottom: BOTTOM_BAR_HEIGHT + insets.bottom + 16 },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Hero success card */}
+        <Animated.View entering={FadeIn.duration(500)}>
+          <LinearGradient
+            colors={[colors.primary[600], colors.primary[900]]}
+            style={ss.heroCard}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+          >
+            <AnimatedCheckIcon />
+            <Text style={ss.heroTitle}>Recording Submitted!</Text>
+            <Text style={ss.heroSubtitle}>
+              Your property listing is being processed by our AI. We'll notify you once it's live in hours!
+            </Text>
+          </LinearGradient>
+        </Animated.View>
+
+        {/* Boost section */}
+        <Animated.View entering={FadeIn.duration(400).delay(200)}>
+          <Text style={ss.boostTitle}>Boost Your Listing</Text>
+          <Text style={ss.boostSubtitle}>Add more details to get more enquiries</Text>
+        </Animated.View>
+
+        {/* Add Photos card */}
+        <Animated.View entering={SlideInDown.duration(400).delay(300)} style={ss.boostCard}>
+          <View style={ss.boostCardTop}>
+            <View style={ss.boostIconCircle}>
+              <Camera size={20} color={colors.primary[600]} />
+            </View>
+            <View style={ss.boostCardContent}>
+              <View style={ss.boostCardTitleRow}>
+                <Text style={ss.boostCardTitle}>Add Photos / Videos</Text>
+                <View style={ss.boostBadge}>
+                  <Text style={ss.boostBadgeText}>+500% views</Text>
+                </View>
+              </View>
+              <Text style={ss.boostCardDesc}>
+                Properties with photos get 5x more views
+              </Text>
+            </View>
+          </View>
+          <View style={ss.boostCardActions}>
+            <Pressable
+              style={ss.boostLinkBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/listing/preview');
+              }}
+            >
+              <Text style={ss.boostLinkTextAccent}>Upload Later</Text>
+              <ArrowRight size={14} color={colors.accent[500]} />
+            </Pressable>
+            <Pressable
+              style={ss.boostLinkBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/listing/upload-photos');
+              }}
+            >
+              <Text style={ss.boostLinkText}>Add Now</Text>
+              <ArrowRight size={14} color={colors.primary[600]} />
+            </Pressable>
+          </View>
+        </Animated.View>
+
+        {/* Add Amenities card */}
+        <Animated.View entering={SlideInDown.duration(400).delay(400)} style={ss.boostCard}>
+          <View style={ss.boostCardTop}>
+            <View style={[ss.boostIconCircle, { backgroundColor: colors.accent[50] }]}>
+              <ListChecks size={20} color={colors.accent[500]} />
+            </View>
+            <View style={ss.boostCardContent}>
+              <Text style={ss.boostCardTitle}>Add Detailed Amenities</Text>
+              <Text style={ss.boostCardDesc}>
+                Complete listings rank higher in search
+              </Text>
+            </View>
+          </View>
+          <View style={ss.boostCardActions}>
+            <Pressable
+              style={ss.boostLinkBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/listing/amenities');
+              }}
+            >
+              <Text style={ss.boostLinkText}>Add Now</Text>
+              <ArrowRight size={14} color={colors.primary[600]} />
+            </Pressable>
+          </View>
+        </Animated.View>
+      </ScrollView>
+
+      {/* Bottom bar */}
+      <View
+        style={[
+          s.bottomBar,
+          { paddingBottom: Math.max(insets.bottom, 16) + 8 },
+        ]}
+      >
+        <PressableButton
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            router.push('/listing/preview');
+          }}
+          style={ss.doneBtnWrapper}
+        >
+          <LinearGradient
+            colors={[colors.primary[600], colors.primary[800]]}
+            style={ss.doneBtn}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <Text style={ss.doneBtnText}>Upload & Proceed</Text>
+          </LinearGradient>
+        </PressableButton>
+        <Text style={s.bottomHint}>
+          We'll notify you when your listing is live in few hours
+        </Text>
+      </View>
+    </>
+  );
+}
+
 // ─── Main screen ───────────────────────────────────────────
 
 export default function VoiceListingScreen() {
@@ -933,7 +1127,11 @@ export default function VoiceListingScreen() {
 
   const handleConfirm = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    // TODO: navigate to next step (manual form pre-filled with parsed data)
+    setRecordingState('submitted');
+  }, []);
+
+  const handleDone = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     router.back();
   }, [router]);
 
@@ -945,8 +1143,11 @@ export default function VoiceListingScreen() {
       <View style={s.header}>
         <Pressable
           onPress={() => {
+            if (recordingState === 'submitted') {
+              router.back();
+              return;
+            }
             if (recordingState === 'complete') {
-              // Go back to idle from complete
               setRecordingState('idle');
               return;
             }
@@ -966,7 +1167,9 @@ export default function VoiceListingScreen() {
         <View style={{ width: 36 }} />
       </View>
 
-      {recordingState === 'complete' ? (
+      {recordingState === 'submitted' ? (
+        <SubmittedView onDone={handleDone} />
+      ) : recordingState === 'complete' ? (
         <CompleteView
           transcribedText={transcribedText}
           seconds={seconds}
@@ -1440,6 +1643,54 @@ const cs = StyleSheet.create({
     gap: 16,
   },
 
+  // Warning banner (missing fields)
+  warningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.accent[50],
+    borderRadius: 14,
+    padding: 14,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: colors.accent[100],
+  },
+  warningIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.accent[200],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  warningContent: {
+    flex: 1,
+  },
+  warningTitle: {
+    fontFamily: fontFamilies.headingSemibold,
+    fontSize: fontSizes.sm,
+    lineHeight: lineHeights.sm,
+    color: colors.neutral[900],
+  },
+  warningSubtitle: {
+    fontFamily: fontFamilies.body,
+    fontSize: fontSizes.xs,
+    lineHeight: lineHeights.xs,
+    color: colors.neutral[500],
+    marginTop: 2,
+  },
+  warningCta: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 10,
+    backgroundColor: colors.warning,
+  },
+  warningCtaText: {
+    fontFamily: fontFamilies.headingSemibold,
+    fontSize: fontSizes.sm,
+    lineHeight: lineHeights.sm,
+    color: colors.white,
+  },
+
   // Success banner
   successBanner: {
     backgroundColor: colors.primary[50],
@@ -1813,6 +2064,174 @@ const es = StyleSheet.create({
     fontFamily: fontFamilies.headingSemibold,
     fontSize: fontSizes.sm,
     lineHeight: lineHeights.sm,
+    color: colors.white,
+    letterSpacing: 0.3,
+  },
+});
+
+// ─── Submitted screen styles ────────────────────────────────
+
+const ss = StyleSheet.create({
+  scrollContent: {
+    padding: 20,
+    gap: 20,
+  },
+
+  // Hero card
+  heroCard: {
+    borderRadius: 20,
+    padding: 32,
+    alignItems: 'center',
+  },
+  heroIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary[900],
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
+  },
+  heroTitle: {
+    fontFamily: fontFamilies.headingExtrabold,
+    fontSize: fontSizes['2xl'],
+    lineHeight: lineHeights['2xl'],
+    color: colors.white,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  heroSubtitle: {
+    fontFamily: fontFamilies.body,
+    fontSize: fontSizes.sm,
+    lineHeight: lineHeights.base,
+    color: 'rgba(255,255,255,0.8)',
+    textAlign: 'center',
+  },
+
+  // Boost section
+  boostTitle: {
+    fontFamily: fontFamilies.heading,
+    fontSize: fontSizes.lg,
+    lineHeight: lineHeights.lg,
+    color: colors.neutral[900],
+  },
+  boostSubtitle: {
+    fontFamily: fontFamilies.body,
+    fontSize: fontSizes.sm,
+    lineHeight: lineHeights.sm,
+    color: colors.neutral[500],
+    marginTop: 2,
+  },
+
+  // Boost cards
+  boostCard: {
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.primary[100],
+  },
+  boostCardTop: {
+    flexDirection: 'row',
+    gap: 14,
+  },
+  boostIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.primary[50],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  boostCardContent: {
+    flex: 1,
+  },
+  boostCardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  boostCardTitle: {
+    fontFamily: fontFamilies.headingSemibold,
+    fontSize: fontSizes.base,
+    lineHeight: lineHeights.base,
+    color: colors.neutral[900],
+  },
+  boostBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: colors.primary[50],
+    borderWidth: 1,
+    borderColor: colors.primary[200],
+  },
+  boostBadgeText: {
+    fontFamily: fontFamilies.bodyMedium,
+    fontSize: fontSizes.xs,
+    lineHeight: lineHeights.xs,
+    color: colors.primary[700],
+  },
+  boostCardDesc: {
+    fontFamily: fontFamilies.body,
+    fontSize: fontSizes.sm,
+    lineHeight: lineHeights.sm,
+    color: colors.neutral[500],
+    marginTop: 4,
+  },
+  boostCardActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 20,
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.neutral[100],
+  },
+  boostLinkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  boostLinkText: {
+    fontFamily: fontFamilies.headingSemibold,
+    fontSize: fontSizes.sm,
+    lineHeight: lineHeights.sm,
+    color: colors.primary[600],
+  },
+  boostLinkTextAccent: {
+    fontFamily: fontFamilies.headingSemibold,
+    fontSize: fontSizes.sm,
+    lineHeight: lineHeights.sm,
+    color: colors.accent[500],
+  },
+
+  // Bottom CTA
+  doneBtnWrapper: {
+    alignSelf: 'stretch',
+  },
+  doneBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 54,
+    borderRadius: 14,
+  },
+  doneBtnText: {
+    fontFamily: fontFamilies.headingSemibold,
+    fontSize: fontSizes.base,
+    lineHeight: lineHeights.base,
     color: colors.white,
     letterSpacing: 0.3,
   },
