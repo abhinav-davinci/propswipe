@@ -102,6 +102,10 @@ export default function RootLayout() {
           name="listing/preview"
           options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
         />
+        <Stack.Screen
+          name="listing/success"
+          options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom', gestureEnabled: false }}
+        />
       </Stack>
     </GestureHandlerRootView>
   );

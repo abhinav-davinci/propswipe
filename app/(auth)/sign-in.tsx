@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, Phone, Mail } from 'lucide-react-native';
 import { TextInput } from '../../src/components/ui/TextInput';
 import { Button } from '../../src/components/ui/Button';
@@ -9,6 +10,7 @@ import { colors } from '../../src/theme/colors';
 
 export default function SignInScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
 
@@ -26,7 +28,7 @@ export default function SignInScreen() {
       {/* Header with gradient */}
       <LinearGradient
         colors={['#094E4C', '#147A78']}
-        className="pt-16 pb-10 px-6"
+        style={{ paddingTop: insets.top + 16, paddingHorizontal: 24, paddingBottom: 40 }}
       >
         <Pressable onPress={() => router.back()} className="mb-6">
           <ChevronLeft size={24} color="white" />

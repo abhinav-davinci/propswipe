@@ -5,16 +5,33 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   User, Settings, ChevronRight, Flame, Target, Award,
   Compass, Heart, Eye, BookOpen, Fingerprint, Radar,
-  Swords, LogOut, Pencil, RefreshCw,
+  Swords, LogOut, Pencil, RefreshCw, Building2, Clock,
+  CheckCircle2, MoreHorizontal, MapPin, Image as ImageIcon,
 } from 'lucide-react-native';
-import { SafeScreen } from '../../src/components/layout/SafeScreen';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useOnboardingStore } from '../../src/stores/onboardingStore';
 import { useProfileStore } from '../../src/stores/profileStore';
 import { usePropertyStore } from '../../src/stores/propertyStore';
+import { Image } from 'react-native';
 import { colors } from '../../src/theme/colors';
+import { fontFamilies, fontSizes, lineHeights } from '../../src/theme/typography';
 import { formatCurrency } from '../../src/utils/formatCurrency';
 import type { JourneyStage } from '../../src/types/user';
+
+// ─── Mock listings data ─────────────────────────────────────
+
+const MOCK_MY_LISTINGS = [
+  {
+    id: '1',
+    title: 'Spacious 3BHK Apartment',
+    location: 'Koregaon Park, Pune',
+    price: '45L',
+    status: 'under_review' as const,
+    image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=300&q=70',
+    postedAt: '2 hours ago',
+  },
+];
 
 const journeyStageLabels: Record<JourneyStage, { label: string; emoji: string }> = {
   explorer: { label: 'Explorer', emoji: '🔍' },
@@ -51,6 +68,113 @@ function MenuRow({ icon, label, onPress, trailing }: {
   );
 }
 
+const statusConfig = {
+  under_review: { label: 'Under Review', color: colors.accent[500], bg: colors.accent[50], icon: Clock },
+  live: { label: 'Live', color: colors.success, bg: '#E8F5E9', icon: CheckCircle2 },
+  draft: { label: 'Draft', color: colors.neutral[500], bg: colors.neutral[100], icon: Pencil },
+} as const;
+
+function MyListingCard({ listing, onPress }: {
+  listing: typeof MOCK_MY_LISTINGS[0];
+  onPress: () => void;
+}) {
+  const statusInfo = statusConfig[listing.status];
+  const StatusIcon = statusInfo.icon;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{
+        backgroundColor: colors.white,
+        borderRadius: 16,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: colors.neutral[100],
+        shadowColor: '#094E4C',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 3,
+      }}
+    >
+      <View style={{ flexDirection: 'row' }}>
+        {/* Thumbnail */}
+        {listing.image ? (
+          <Image
+            source={{ uri: listing.image }}
+            style={{ width: 100, height: 100 }}
+          />
+        ) : (
+          <View style={{
+            width: 100,
+            height: 100,
+            backgroundColor: colors.neutral[50],
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <ImageIcon size={24} color={colors.neutral[300]} />
+          </View>
+        )}
+
+        {/* Details */}
+        <View style={{ flex: 1, padding: 12, justifyContent: 'space-between' }}>
+          <View>
+            <Text style={{
+              fontFamily: fontFamilies.heading,
+              fontSize: fontSizes.sm,
+              lineHeight: lineHeights.sm,
+              color: colors.neutral[900],
+              marginBottom: 4,
+            }}>
+              {listing.title}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <MapPin size={11} color={colors.neutral[400]} />
+              <Text style={{
+                fontFamily: fontFamilies.body,
+                fontSize: fontSizes.xs,
+                lineHeight: lineHeights.xs,
+                color: colors.neutral[500],
+              }}>
+                {listing.location}
+              </Text>
+            </View>
+          </View>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{
+              fontFamily: fontFamilies.headingSemibold,
+              fontSize: fontSizes.sm,
+              lineHeight: lineHeights.sm,
+              color: colors.neutral[900],
+            }}>
+              {'\u20B9'}{listing.price}
+            </Text>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+              backgroundColor: statusInfo.bg,
+              paddingHorizontal: 8,
+              paddingVertical: 3,
+              borderRadius: 8,
+            }}>
+              <StatusIcon size={11} color={statusInfo.color} />
+              <Text style={{
+                fontFamily: fontFamilies.bodyMedium,
+                fontSize: 10,
+                color: statusInfo.color,
+              }}>
+                {statusInfo.label}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, isAuthenticated, isGuest, signOut } = useAuthStore();
@@ -65,11 +189,13 @@ export default function ProfileScreen() {
     ? `${formatCurrency(budgetMin)} - ${formatCurrency(budgetMax)}/mo`
     : `${formatCurrency(budgetMin)} - ${formatCurrency(budgetMax)}`;
 
+  const insets = useSafeAreaInsets();
+
   return (
-    <SafeScreen>
+    <View className="flex-1 bg-neutral-50" style={{ paddingLeft: insets.left, paddingRight: insets.right }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
         {/* ─── Header Gradient ─── */}
-        <LinearGradient colors={['#094E4C', '#147A78']} className="px-4 pt-4 pb-5">
+        <LinearGradient colors={['#094E4C', '#147A78']} style={{ paddingTop: insets.top + 16, paddingHorizontal: 16, paddingBottom: 20 }}>
           {/* Top row */}
           <View className="flex-row items-center justify-between mb-5">
             <Text className="text-xl font-heading-extrabold text-white">Profile</Text>
@@ -186,6 +312,34 @@ export default function ProfileScreen() {
           </View>
         )}
 
+        {/* ─── My Listings ─── */}
+        {MOCK_MY_LISTINGS.length > 0 && (
+          <View className="mx-4 mt-4 mb-4">
+            <View className="flex-row items-center justify-between mb-3">
+              <View className="flex-row items-center gap-2">
+                <Building2 size={18} color={colors.primary[600]} />
+                <Text className="text-sm font-heading-semibold text-neutral-900">My Listings</Text>
+              </View>
+              <Pressable
+                onPress={() => {}}
+                className="flex-row items-center"
+              >
+                <Text className="text-xs font-body-medium text-primary-600">View All</Text>
+                <ChevronRight size={14} color={colors.primary[600]} />
+              </Pressable>
+            </View>
+            <View style={{ gap: 10 }}>
+              {MOCK_MY_LISTINGS.map((listing) => (
+                <MyListingCard
+                  key={listing.id}
+                  listing={listing}
+                  onPress={() => {}}
+                />
+              ))}
+            </View>
+          </View>
+        )}
+
         {/* ─── Reset Preferences ─── */}
         <Pressable
           onPress={() => router.push('/settings/edit-preferences')}
@@ -243,6 +397,6 @@ export default function ProfileScreen() {
           ) : null}
         </View>
       </ScrollView>
-    </SafeScreen>
+    </View>
   );
 }

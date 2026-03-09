@@ -163,8 +163,7 @@ export default function PreviewListingScreen() {
   const handlePostListing = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     // TODO: submit listing to backend
-    // Navigate back to tabs
-    router.dismissAll();
+    router.push('/listing/success');
   }, [router]);
 
   return (

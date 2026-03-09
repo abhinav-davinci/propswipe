@@ -1,19 +1,22 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import { View, Text, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Sparkles, Bell } from 'lucide-react-native';
 import { SafeScreen } from '../../src/components/layout/SafeScreen';
 import { SwipeableCard } from '../../src/components/swipe/SwipeableCard';
 import { SwipeActionButtons } from '../../src/components/swipe/SwipeActionButtons';
+import { ImmersiveReelViewer } from '../../src/components/reels/ImmersiveReelViewer';
 import { useCardDeck } from '../../src/hooks/useCardDeck';
 import { colors } from '../../src/theme/colors';
 import type { SwipeDirection } from '../../src/types/property';
+import type { VideoReel } from '../../src/types/insight';
 
 export default function DiscoverScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const { currentCard, nextCards, currentIndex, totalCards, handleSwipe } = useCardDeck();
   const programmaticSwipeRef = useRef<((direction: SwipeDirection) => void) | null>(null);
+  const [immersiveReel, setImmersiveReel] = useState<VideoReel | null>(null);
 
   const cardWidth = width - 32;
 
@@ -27,8 +30,25 @@ export default function DiscoverScreen() {
   const onCardTap = useCallback(() => {
     if (currentCard?.type === 'property') {
       router.push(`/property/${currentCard.data.id}`);
+    } else if (currentCard?.type === 'video_reel') {
+      setImmersiveReel(currentCard.data);
     }
   }, [currentCard, router]);
+
+  // Immersive reel navigation — swipe advances the feed card
+  const handleReelClose = useCallback(() => {
+    setImmersiveReel(null);
+  }, []);
+
+  const handleReelNext = useCallback(() => {
+    handleSwipe('left');
+    setImmersiveReel(null);
+  }, [handleSwipe]);
+
+  const handleReelPrev = useCallback(() => {
+    // No going back in the feed — just close
+    setImmersiveReel(null);
+  }, []);
 
   const onActionButton = useCallback(
     (direction: SwipeDirection) => {
@@ -120,9 +140,22 @@ export default function DiscoverScreen() {
       {currentCard && currentCard.type !== 'property' && (
         <View className="items-center py-3">
           <Text className="text-xs font-body text-neutral-400">
-            Swipe to continue
+            {currentCard.type === 'video_reel' ? 'Tap to watch · Swipe to continue' : 'Swipe to continue'}
           </Text>
         </View>
+      )}
+
+      {/* Immersive Reel Viewer */}
+      {immersiveReel && (
+        <ImmersiveReelViewer
+          reel={immersiveReel}
+          visible={!!immersiveReel}
+          onClose={handleReelClose}
+          onSwipeNext={handleReelNext}
+          onSwipePrev={handleReelPrev}
+          hasNext={currentIndex < totalCards - 1}
+          hasPrev={false}
+        />
       )}
     </SafeScreen>
   );

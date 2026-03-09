@@ -9,6 +9,7 @@ import { InsightCard } from '../cards/InsightCard';
 import { NewsShortCard } from '../cards/NewsShortCard';
 import { MarketPulseCard } from '../cards/MarketPulseCard';
 import { NeighbourhoodChapterCard } from '../cards/NeighbourhoodChapterCard';
+import { VideoReelCard } from '../cards/VideoReelCard';
 import type { FeedItem } from '../../types/feed';
 import type { SwipeDirection } from '../../types/property';
 
@@ -48,6 +49,8 @@ export function SwipeableCard({ item, onSwipe, onTap, onProgrammaticSwipe }: Swi
         return <MarketPulseCard data={item.data} />;
       case 'neighbourhood':
         return <NeighbourhoodChapterCard chapter={item.data} />;
+      case 'video_reel':
+        return <VideoReelCard reel={item.data} />;
     }
   };
 
