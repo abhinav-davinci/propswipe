@@ -106,6 +106,10 @@ export default function RootLayout() {
           name="listing/success"
           options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom', gestureEnabled: false }}
         />
+        <Stack.Screen
+          name="listing/videos"
+          options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
+        />
       </Stack>
     </GestureHandlerRootView>
   );

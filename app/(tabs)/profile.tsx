@@ -7,6 +7,7 @@ import {
   Compass, Heart, Eye, BookOpen, Fingerprint, Radar,
   Swords, LogOut, Pencil, RefreshCw, Building2, Clock,
   CheckCircle2, MoreHorizontal, MapPin, Image as ImageIcon,
+  Film, Play,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../src/stores/authStore';
@@ -30,6 +31,7 @@ const MOCK_MY_LISTINGS = [
     status: 'under_review' as const,
     image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=300&q=70',
     postedAt: '2 hours ago',
+    videoStatus: 'ready' as 'none' | 'generating' | 'ready',
   },
 ];
 
@@ -74,12 +76,20 @@ const statusConfig = {
   draft: { label: 'Draft', color: colors.neutral[500], bg: colors.neutral[100], icon: Pencil },
 } as const;
 
-function MyListingCard({ listing, onPress }: {
+const videoStatusConfig = {
+  none: null,
+  generating: { label: 'Video Generating...', color: colors.accent[600], bg: colors.accent[50], icon: Film },
+  ready: { label: 'Video Ready', color: colors.primary[600], bg: colors.primary[50], icon: Play },
+} as const;
+
+function MyListingCard({ listing, onPress, onVideoPress }: {
   listing: typeof MOCK_MY_LISTINGS[0];
   onPress: () => void;
+  onVideoPress?: () => void;
 }) {
   const statusInfo = statusConfig[listing.status];
   const StatusIcon = statusInfo.icon;
+  const videoInfo = videoStatusConfig[listing.videoStatus];
 
   return (
     <Pressable
@@ -171,6 +181,43 @@ function MyListingCard({ listing, onPress }: {
           </View>
         </View>
       </View>
+
+      {/* Video status bar */}
+      {videoInfo && (
+        <Pressable
+          onPress={onVideoPress}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            paddingHorizontal: 14,
+            paddingVertical: 10,
+            borderTopWidth: 1,
+            borderTopColor: colors.neutral[100],
+            backgroundColor: videoInfo.bg,
+          }}
+        >
+          <videoInfo.icon size={14} color={videoInfo.color} />
+          <Text style={{
+            flex: 1,
+            fontFamily: fontFamilies.bodyMedium,
+            fontSize: fontSizes.xs,
+            lineHeight: lineHeights.xs,
+            color: videoInfo.color,
+          }}>
+            {videoInfo.label}
+          </Text>
+          {listing.videoStatus === 'ready' && (
+            <Text style={{
+              fontFamily: fontFamilies.headingSemibold,
+              fontSize: fontSizes.xs,
+              color: colors.primary[600],
+            }}>
+              View →
+            </Text>
+          )}
+        </Pressable>
+      )}
     </Pressable>
   );
 }
@@ -334,6 +381,7 @@ export default function ProfileScreen() {
                   key={listing.id}
                   listing={listing}
                   onPress={() => {}}
+                  onVideoPress={listing.videoStatus === 'ready' ? () => router.push(`/listing/videos?listingId=${listing.id}`) : undefined}
                 />
               ))}
             </View>

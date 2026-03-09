@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -31,10 +31,8 @@ import {
   TrendingUp,
   Eye,
   Award,
-  Sparkles,
-  Film,
-  ImageIcon,
   Zap,
+  ImageIcon,
 } from 'lucide-react-native';
 import { colors } from '../../src/theme/colors';
 import { fontFamilies, fontSizes, lineHeights } from '../../src/theme/typography';
@@ -148,22 +146,15 @@ function PhotoStackAnimation({ photoCount }: { photoCount: number }) {
   return (
     <View style={styles.stackWrapper}>
       <View style={styles.stackContainer}>
-        {/* Left card */}
         <Animated.View style={[styles.stackCard, styles.stackCard1, card1Style]}>
           <Image source={{ uri: STACK_IMAGES[0] }} style={styles.stackCardImage} />
         </Animated.View>
-
-        {/* Center card (behind play button) */}
         <Animated.View style={[styles.stackCard, styles.stackCard2, card2Style]}>
           <Image source={{ uri: STACK_IMAGES[1] }} style={styles.stackCardImage} />
         </Animated.View>
-
-        {/* Right card */}
         <Animated.View style={[styles.stackCard, styles.stackCard3, card3Style]}>
           <Image source={{ uri: STACK_IMAGES[2] }} style={styles.stackCardImage} />
         </Animated.View>
-
-        {/* Play button — floats above all cards */}
         <View style={styles.playCircleOuter}>
           <Animated.View style={[styles.playCircleShimmer, shimmerStyle]} />
           <View style={styles.playCircleInner}>
@@ -171,8 +162,6 @@ function PhotoStackAnimation({ photoCount }: { photoCount: number }) {
           </View>
         </View>
       </View>
-
-      {/* Photo count badge — outside the stack so it can't be overlapped */}
       <View style={styles.photoCountBadge}>
         <ImageIcon size={12} color={colors.white} />
         <Text style={styles.photoCountText}>{photoCount} photos</Text>
@@ -203,66 +192,6 @@ function StatBadge({
   );
 }
 
-// ─── Generating state ──────────────────────────────────────
-
-function GeneratingView() {
-  const progress = useSharedValue(0);
-  const [stage, setStage] = useState(0);
-
-  const stages = [
-    'Analyzing your photos...',
-    'Composing cinematic scenes...',
-    'Adding smooth transitions...',
-    'Finalizing your video tour...',
-  ];
-
-  useEffect(() => {
-    progress.value = withTiming(1, { duration: 6000, easing: Easing.inOut(Easing.ease) });
-
-    const interval = setInterval(() => {
-      setStage((prev) => {
-        if (prev < stages.length - 1) return prev + 1;
-        return prev;
-      });
-    }, 1500);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const barStyle = useAnimatedStyle(() => ({
-    width: `${progress.value * 100}%`,
-  }));
-
-  return (
-    <Animated.View entering={FadeIn.duration(400)} style={styles.generatingContainer}>
-      <View style={styles.generatingIconCircle}>
-        <Film size={28} color={colors.primary[600]} />
-      </View>
-
-      <Text style={styles.generatingTitle}>Creating Your Video Tour</Text>
-
-      <Animated.View entering={FadeIn.duration(300).delay(200)}>
-        <Text style={styles.generatingStage}>{stages[stage]}</Text>
-      </Animated.View>
-
-      <View style={styles.progressBarBg}>
-        <Animated.View style={[styles.progressBarFill, barStyle]}>
-          <LinearGradient
-            colors={[colors.primary[500], colors.primary[700]]}
-            style={StyleSheet.absoluteFill}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          />
-        </Animated.View>
-      </View>
-
-      <Text style={styles.generatingHint}>
-        This usually takes a few seconds
-      </Text>
-    </Animated.View>
-  );
-}
-
 // ─── Main screen ───────────────────────────────────────────
 
 export default function AIVideoScreen() {
@@ -271,33 +200,16 @@ export default function AIVideoScreen() {
   const params = useLocalSearchParams<{ photoCount?: string }>();
   const photoCount = parseInt(params.photoCount || '0', 10);
 
-  const [isGenerating, setIsGenerating] = useState(false);
-
   const handleGenerate = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    setIsGenerating(true);
-
-    // Mock generation — navigate to preview after "processing"
-    setTimeout(() => {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.push('/listing/preview?withImages=1');
-    }, 6500);
+    // Navigate to preview with video generation in progress
+    router.push('/listing/preview?withImages=1&videoGenerating=1');
   }, [router]);
 
   const handleSkip = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push('/listing/preview?withImages=1');
   }, [router]);
-
-  if (isGenerating) {
-    return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.generatingScreen}>
-          <GeneratingView />
-        </View>
-      </View>
-    );
-  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -331,6 +243,13 @@ export default function AIVideoScreen() {
               Listings with videos get 3x more enquiries
             </Text>{' '}
             and sell faster.
+          </Text>
+        </Animated.View>
+
+        {/* Free tier notice */}
+        <Animated.View entering={FadeInDown.duration(400).delay(500)} style={styles.freeTierBadge}>
+          <Text style={styles.freeTierText}>
+            <Text style={styles.freeTierHighlight}>3 free generations</Text> included with your account
           </Text>
         </Animated.View>
 
@@ -554,6 +473,27 @@ const styles = StyleSheet.create({
     color: colors.primary[700],
   },
 
+  // Free tier
+  freeTierBadge: {
+    alignSelf: 'center',
+    backgroundColor: colors.primary[50],
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.primary[100],
+  },
+  freeTierText: {
+    fontFamily: fontFamilies.body,
+    fontSize: fontSizes.xs,
+    lineHeight: lineHeights.xs,
+    color: colors.neutral[600],
+  },
+  freeTierHighlight: {
+    fontFamily: fontFamilies.headingSemibold,
+    color: colors.primary[700],
+  },
+
   // Stats
   statsRow: {
     flexDirection: 'row',
@@ -645,62 +585,5 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.sm,
     lineHeight: lineHeights.sm,
     color: colors.neutral[400],
-  },
-
-  // Generating state
-  generatingScreen: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
-  generatingContainer: {
-    alignItems: 'center',
-    gap: 20,
-    width: '100%',
-  },
-  generatingIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: colors.primary[50],
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.primary[100],
-  },
-  generatingTitle: {
-    fontFamily: fontFamilies.heading,
-    fontSize: fontSizes.xl,
-    lineHeight: lineHeights.xl,
-    color: colors.neutral[900],
-    textAlign: 'center',
-  },
-  generatingStage: {
-    fontFamily: fontFamilies.body,
-    fontSize: fontSizes.sm,
-    lineHeight: lineHeights.sm,
-    color: colors.neutral[500],
-    textAlign: 'center',
-  },
-  progressBarBg: {
-    width: '80%',
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.neutral[100],
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: 6,
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  generatingHint: {
-    fontFamily: fontFamilies.body,
-    fontSize: fontSizes.xs,
-    lineHeight: lineHeights.xs,
-    color: colors.neutral[400],
-    textAlign: 'center',
-    marginTop: 4,
   },
 });
