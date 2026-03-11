@@ -249,7 +249,7 @@ export default function AIVideoScreen() {
         {/* Free tier notice */}
         <Animated.View entering={FadeInDown.duration(400).delay(500)} style={styles.freeTierBadge}>
           <Text style={styles.freeTierText}>
-            <Text style={styles.freeTierHighlight}>3 free generations</Text> included with your account
+            <Text style={styles.freeTierHighlight}>1 free generation</Text> included with your account
           </Text>
         </Animated.View>
 

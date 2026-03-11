@@ -75,6 +75,7 @@ export default function RootLayout() {
           options={{ presentation: 'modal' }}
         />
         <Stack.Screen name="deal-radar/index" />
+        <Stack.Screen name="chat/[conversationId]" />
         <Stack.Screen name="agent/[id]" />
         <Stack.Screen name="settings/index" />
         <Stack.Screen name="settings/edit-preferences" />

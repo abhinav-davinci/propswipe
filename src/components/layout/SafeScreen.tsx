@@ -1,6 +1,7 @@
 import React from 'react';
-import { View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors } from '../../theme/colors';
 
 interface SafeScreenProps {
   children: React.ReactNode;
@@ -12,9 +13,16 @@ export function SafeScreen({ children, className = '', edges }: SafeScreenProps)
   return (
     <SafeAreaView
       edges={edges ?? ['top', 'left', 'right']}
-      className={`flex-1 bg-neutral-50 ${className}`}
+      style={styles.container}
     >
       {children}
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.neutral[50],
+  },
+});

@@ -7,7 +7,7 @@ import {
   Compass, Heart, Eye, BookOpen, Fingerprint, Radar,
   Swords, LogOut, Pencil, RefreshCw, Building2, Clock,
   CheckCircle2, MoreHorizontal, MapPin, Image as ImageIcon,
-  Film, Play,
+  Film, Play, TrendingUp,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../src/stores/authStore';
@@ -407,6 +407,8 @@ export default function ProfileScreen() {
         {/* ─── Feature Menu ─── */}
         <View className="mx-4 bg-white rounded-xl mb-4 shadow-sm overflow-hidden"
           style={{ shadowColor: '#094E4C', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 }}>
+          <MenuRow icon={<TrendingUp size={18} color={colors.primary[600]} />} label="Market Insights" onPress={() => router.push('/(tabs)/insights')} />
+          <View className="h-px bg-neutral-100 ml-14" />
           <MenuRow icon={<Fingerprint size={18} color={colors.primary[600]} />} label="Personality Profile" onPress={() => router.push('/personality/')} />
           <View className="h-px bg-neutral-100 ml-14" />
           <MenuRow icon={<Award size={18} color={colors.accent[500]} />} label="Achievements" onPress={() => {}} />

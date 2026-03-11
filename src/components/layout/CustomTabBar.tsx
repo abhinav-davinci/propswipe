@@ -19,13 +19,14 @@ import * as Haptics from 'expo-haptics';
 import {
   Compass,
   Heart,
-  TrendingUp,
+  MessageCircle,
   User,
   Plus,
 } from 'lucide-react-native';
 import { colors } from '../../theme/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddListingSheet } from '../listing/AddListingSheet';
+import { useChatStore } from '../../stores/chatStore';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -35,7 +36,7 @@ const TAB_ICONS: Record<string, {
 }> = {
   discover: { icon: Compass, label: 'Discover' },
   saved: { icon: Heart, label: 'Saved' },
-  insights: { icon: TrendingUp, label: 'Insights' },
+  messages: { icon: MessageCircle, label: 'Messages' },
   profile: { icon: User, label: 'Profile' },
 };
 
@@ -50,9 +51,10 @@ interface TabItemProps {
   isFocused: boolean;
   onPress: () => void;
   onLongPress: () => void;
+  hasUnread?: boolean;
 }
 
-function TabItem({ routeName, isFocused, onPress, onLongPress }: TabItemProps) {
+function TabItem({ routeName, isFocused, onPress, onLongPress, hasUnread }: TabItemProps) {
   const tabConfig = TAB_ICONS[routeName];
   if (!tabConfig) return null;
 
@@ -122,6 +124,9 @@ function TabItem({ routeName, isFocused, onPress, onLongPress }: TabItemProps) {
           strokeWidth={isFocused ? ACTIVE_ICON_STROKE : INACTIVE_ICON_STROKE}
           fill={isFocused && routeName === 'saved' ? activeColor : 'none'}
         />
+        {hasUnread && !isFocused && (
+          <View style={styles.unreadDot} />
+        )}
       </View>
 
       {/* Label */}
@@ -218,12 +223,16 @@ export default function CustomTabBar({ state, descriptors, navigation }: BottomT
   const insets = useSafeAreaInsets();
   const bottomPadding = Math.max(insets.bottom, 8);
   const [sheetVisible, setSheetVisible] = useState(false);
+  const totalUnread = useChatStore((s) => s.conversations.reduce((sum, c) => sum + c.unreadCount, 0));
 
-  const leftTabs = state.routes.slice(0, 2);  // Discover, Saved
-  const rightTabs = state.routes.slice(2);     // Insights, Profile
+  // Only render tabs that have icons configured (excludes hidden tabs like insights)
+  const visibleRoutes = state.routes.filter((r) => TAB_ICONS[r.name]);
+  const leftTabs = visibleRoutes.slice(0, 2);  // Discover, Saved
+  const rightTabs = visibleRoutes.slice(2);     // Messages, Profile
 
-  const renderTab = (route: typeof state.routes[0], index: number) => {
-    const isFocused = state.index === index;
+  const renderTab = (route: typeof state.routes[0]) => {
+    const routeIndex = state.routes.findIndex((r) => r.key === route.key);
+    const isFocused = state.index === routeIndex;
 
     const onPress = () => {
       const event = navigation.emit({
@@ -251,6 +260,7 @@ export default function CustomTabBar({ state, descriptors, navigation }: BottomT
         isFocused={isFocused}
         onPress={onPress}
         onLongPress={onLongPress}
+        hasUnread={route.name === 'messages' && totalUnread > 0}
       />
     );
   };
@@ -278,12 +288,12 @@ export default function CustomTabBar({ state, descriptors, navigation }: BottomT
         ]}
       >
         <View style={styles.tabRow}>
-          {leftTabs.map((route, index) => renderTab(route, index))}
+          {leftTabs.map((route) => renderTab(route))}
           <CenterActionButton
             onPress={() => setSheetVisible(true)}
             isSheetOpen={sheetVisible}
           />
-          {rightTabs.map((route, index) => renderTab(route, index + 2))}
+          {rightTabs.map((route) => renderTab(route))}
         </View>
       </View>
       <AddListingSheet
@@ -324,6 +334,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     height: 30,
     borderRadius: 15,
+  },
+  unreadDot: {
+    position: 'absolute',
+    top: 2,
+    right: 12,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.primary[500],
+    borderWidth: 1.5,
+    borderColor: colors.white,
   },
   label: {
     fontSize: 11,

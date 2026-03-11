@@ -1144,7 +1144,7 @@ export default function VoiceListingScreen() {
         <Pressable
           onPress={() => {
             if (recordingState === 'submitted') {
-              router.back();
+              setRecordingState('complete');
               return;
             }
             if (recordingState === 'complete') {

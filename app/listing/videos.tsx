@@ -10,6 +10,7 @@ import {
   Modal,
   StatusBar,
   Image,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -44,9 +45,13 @@ import {
   VolumeX,
   Film,
   MapPin,
+  Phone,
+  Sparkles,
+  Headphones,
 } from 'lucide-react-native';
 import { colors } from '../../src/theme/colors';
 import { fontFamilies, fontSizes, lineHeights } from '../../src/theme/typography';
+import { Toast } from '../../src/components/ui/Toast';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -61,8 +66,7 @@ const MOCK_VIDEO = {
   location: 'Koregaon Park, Pune',
 };
 
-const FREE_GENERATIONS = 3;
-const USED_GENERATIONS = 1;
+const SALES_PHONE = '+919876543210';
 
 // ─── Pressable button ──────────────────────────────────────
 
@@ -421,6 +425,326 @@ function ImmersiveVideoViewer({
   );
 }
 
+// ─── Upgrade modal ──────────────────────────────────────────
+
+function UpgradeModal({
+  visible,
+  onClose,
+}: {
+  visible: boolean;
+  onClose: () => void;
+}) {
+  const handleContactSales = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Linking.openURL(`tel:${SALES_PHONE}`);
+  }, []);
+
+  const handleDismiss = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onClose();
+  }, [onClose]);
+
+  if (!visible) return null;
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={handleDismiss}
+    >
+      <Pressable
+        style={um.backdrop}
+        onPress={handleDismiss}
+      >
+        <Pressable style={um.sheet} onPress={(e) => e.stopPropagation()}>
+          {/* Close button */}
+          <Pressable onPress={handleDismiss} hitSlop={12} style={um.closeBtn}>
+            <X size={18} color={colors.neutral[400]} />
+          </Pressable>
+
+          {/* Icon */}
+          <View style={um.iconWrap}>
+            <LinearGradient
+              colors={[colors.primary[500], colors.primary[700]]}
+              style={um.iconGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Zap size={24} color={colors.white} fill={colors.white} />
+            </LinearGradient>
+          </View>
+
+          {/* Title & subtitle */}
+          <Text style={um.title}>Free Generation Used</Text>
+          <Text style={um.subtitle}>
+            You've used your complimentary AI video generation. Upgrade to create unlimited video tours for all your listings.
+          </Text>
+
+          {/* Usage indicator */}
+          <View style={um.usageCard}>
+            <View style={um.usageRow}>
+              <View style={um.usageItem}>
+                <Text style={um.usageNumber}>1/1</Text>
+                <Text style={um.usageLabel}>Used</Text>
+              </View>
+              <View style={um.usageDivider} />
+              <View style={um.usageItem}>
+                <Text style={[um.usageNumber, { color: colors.neutral[300] }]}>0</Text>
+                <Text style={um.usageLabel}>Remaining</Text>
+              </View>
+            </View>
+            {/* Full progress bar */}
+            <View style={um.progressBg}>
+              <View style={um.progressFill} />
+            </View>
+          </View>
+
+          {/* Benefits */}
+          <View style={um.benefitsSection}>
+            <View style={um.benefitsHeader}>
+              <Sparkles size={14} color={colors.primary[600]} />
+              <Text style={um.benefitsTitle}>Unlock Premium Video Tours</Text>
+            </View>
+            <View style={um.benefitsList}>
+              <UpgradeBenefitRow
+                icon={<Film size={14} color={colors.primary[600]} />}
+                text="Unlimited AI video generations"
+              />
+              <UpgradeBenefitRow
+                icon={<Zap size={14} color={colors.primary[600]} />}
+                text="Priority processing — videos ready faster"
+              />
+              <UpgradeBenefitRow
+                icon={<Headphones size={14} color={colors.primary[600]} />}
+                text="Dedicated support team"
+              />
+            </View>
+          </View>
+
+          {/* CTA buttons */}
+          <PressableButton onPress={handleContactSales} style={um.ctaBtnOuter}>
+            <LinearGradient
+              colors={[colors.primary[600], colors.primary[800]]}
+              style={um.ctaBtn}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Phone size={16} color={colors.white} />
+              <Text style={um.ctaBtnText}>Contact Sales</Text>
+            </LinearGradient>
+          </PressableButton>
+
+          <Pressable onPress={handleDismiss} style={um.laterBtn}>
+            <Text style={um.laterBtnText}>Maybe Later</Text>
+          </Pressable>
+
+          <Text style={um.footerNote}>
+            Our team will help you find the right plan for your needs
+          </Text>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function UpgradeBenefitRow({ icon, text }: { icon: React.ReactNode; text: string }) {
+  return (
+    <View style={um.benefitRow}>
+      <View style={um.benefitIcon}>{icon}</View>
+      <Text style={um.benefitText}>{text}</Text>
+    </View>
+  );
+}
+
+const um = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  sheet: {
+    width: '100%',
+    backgroundColor: colors.white,
+    borderRadius: 24,
+    paddingTop: 32,
+    paddingBottom: 24,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.15,
+        shadowRadius: 30,
+      },
+      android: { elevation: 12 },
+    }),
+  },
+  closeBtn: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.neutral[50],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconWrap: {
+    marginBottom: 20,
+  },
+  iconGradient: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    fontFamily: fontFamilies.headingExtrabold,
+    fontSize: fontSizes.xl,
+    lineHeight: lineHeights.xl,
+    color: colors.neutral[900],
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontFamily: fontFamilies.body,
+    fontSize: fontSizes.sm,
+    lineHeight: lineHeights.base,
+    color: colors.neutral[500],
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  usageCard: {
+    width: '100%',
+    backgroundColor: colors.neutral[50],
+    borderRadius: 14,
+    padding: 16,
+    gap: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: colors.neutral[100],
+  },
+  usageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  usageItem: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+  },
+  usageNumber: {
+    fontFamily: fontFamilies.headingExtrabold,
+    fontSize: fontSizes['2xl'],
+    lineHeight: lineHeights['2xl'],
+    color: colors.primary[600],
+  },
+  usageLabel: {
+    fontFamily: fontFamilies.body,
+    fontSize: fontSizes.xs,
+    lineHeight: lineHeights.xs,
+    color: colors.neutral[500],
+  },
+  usageDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: colors.neutral[200],
+  },
+  progressBg: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.neutral[200],
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary[500],
+    width: '100%',
+  },
+  benefitsSection: {
+    width: '100%',
+    marginBottom: 24,
+    gap: 12,
+  },
+  benefitsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  benefitsTitle: {
+    fontFamily: fontFamilies.headingSemibold,
+    fontSize: fontSizes.sm,
+    lineHeight: lineHeights.sm,
+    color: colors.neutral[900],
+  },
+  benefitsList: {
+    gap: 10,
+  },
+  benefitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  benefitIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: colors.primary[50],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  benefitText: {
+    flex: 1,
+    fontFamily: fontFamilies.body,
+    fontSize: fontSizes.sm,
+    lineHeight: lineHeights.sm,
+    color: colors.neutral[700],
+  },
+  ctaBtnOuter: {
+    width: '100%',
+  },
+  ctaBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 52,
+    borderRadius: 14,
+    gap: 8,
+  },
+  ctaBtnText: {
+    fontFamily: fontFamilies.headingSemibold,
+    fontSize: fontSizes.base,
+    lineHeight: lineHeights.base,
+    color: colors.white,
+    letterSpacing: 0.3,
+  },
+  laterBtn: {
+    paddingVertical: 14,
+  },
+  laterBtnText: {
+    fontFamily: fontFamilies.bodyMedium,
+    fontSize: fontSizes.sm,
+    lineHeight: lineHeights.sm,
+    color: colors.neutral[500],
+  },
+  footerNote: {
+    fontFamily: fontFamilies.body,
+    fontSize: fontSizes.xs,
+    lineHeight: lineHeights.xs,
+    color: colors.neutral[400],
+    textAlign: 'center',
+  },
+});
+
 // ─── Main screen ───────────────────────────────────────────
 
 export default function VideoManagementScreen() {
@@ -429,7 +753,8 @@ export default function VideoManagementScreen() {
   const params = useLocalSearchParams<{ listingId?: string }>();
 
   const [showImmersive, setShowImmersive] = useState(false);
-  const remaining = FREE_GENERATIONS - USED_GENERATIONS;
+  const [toastVisible, setToastVisible] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   const handlePlayFullscreen = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -438,15 +763,17 @@ export default function VideoManagementScreen() {
 
   const handleAttach = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    router.back();
+    router.push('/listing/preview?withImages=1&videoAttached=1');
   }, [router]);
 
   const handleRegenerate = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setShowUpgrade(true);
   }, []);
 
   const handleDownload = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setToastVisible(true);
   }, []);
 
   return (
@@ -457,11 +784,7 @@ export default function VideoManagementScreen() {
           <ArrowLeft size={22} color={colors.neutral[800]} strokeWidth={2} />
         </Pressable>
         <Text style={s.headerTitle}>AI Video Tour</Text>
-        {/* Generation counter */}
-        <View style={s.counterBadge}>
-          <Zap size={11} color={colors.primary[600]} fill={colors.primary[600]} />
-          <Text style={s.counterText}>{remaining} left</Text>
-        </View>
+        <View style={{ width: 36 }} />
       </View>
 
       <ScrollView
@@ -539,13 +862,6 @@ export default function VideoManagementScreen() {
           </View>
         </Animated.View>
 
-        {/* Free tier info */}
-        <Animated.View entering={FadeInDown.duration(400).delay(250)} style={s.tierCard}>
-          <Zap size={14} color={colors.primary[600]} fill={colors.primary[600]} />
-          <Text style={s.tierText}>
-            <Text style={s.tierHighlight}>{remaining} free generation{remaining !== 1 ? 's' : ''}</Text> remaining on your account
-          </Text>
-        </Animated.View>
       </ScrollView>
 
       {/* Bottom bar */}
@@ -575,6 +891,18 @@ export default function VideoManagementScreen() {
         onClose={() => setShowImmersive(false)}
         videoUrl={MOCK_VIDEO.videoUrl}
         thumbnailUrl={MOCK_VIDEO.thumbnailUrl}
+      />
+
+      <UpgradeModal
+        visible={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+      />
+
+      <Toast
+        visible={toastVisible}
+        message="Video saved to your device"
+        variant="success"
+        onDismiss={() => setToastVisible(false)}
       />
     </View>
   );
@@ -624,21 +952,6 @@ const s = StyleSheet.create({
     color: colors.neutral[900],
     textAlign: 'center',
   },
-  counterBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: colors.primary[50],
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
-  },
-  counterText: {
-    fontFamily: fontFamilies.bodyMedium,
-    fontSize: fontSizes.xs,
-    color: colors.primary[700],
-  },
-
   // Scroll
   scrollView: {
     flex: 1,
@@ -834,30 +1147,6 @@ const s = StyleSheet.create({
     fontSize: fontSizes.xs,
     lineHeight: lineHeights.sm,
     color: colors.neutral[700],
-  },
-
-  // Free tier pill
-  tierCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    alignSelf: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: colors.neutral[50],
-    borderWidth: 1,
-    borderColor: colors.neutral[100],
-  },
-  tierText: {
-    fontFamily: fontFamilies.body,
-    fontSize: fontSizes.xs,
-    lineHeight: lineHeights.xs,
-    color: colors.neutral[600],
-  },
-  tierHighlight: {
-    fontFamily: fontFamilies.headingSemibold,
-    color: colors.primary[700],
   },
 
   // Bottom bar

@@ -37,6 +37,9 @@ import {
   Info,
   Film,
   Bell,
+  Play,
+  Check,
+  Clock,
 } from 'lucide-react-native';
 import { colors } from '../../src/theme/colors';
 import { fontFamilies, fontSizes, lineHeights } from '../../src/theme/typography';
@@ -214,6 +217,42 @@ function VideoGenerationBanner({ onDismiss }: { onDismiss: () => void }) {
   );
 }
 
+// ─── Video attached confirmation strip ──────────────────────
+
+function VideoAttachedBanner({ onViewVideo }: { onViewVideo: () => void }) {
+  return (
+    <Animated.View entering={FadeInDown.duration(350).easing(Easing.out(Easing.cubic))} style={va.banner}>
+      <View style={va.bannerLeft}>
+        {/* Thumbnail preview */}
+        <View style={va.thumbnailWrap}>
+          <Image
+            source={{ uri: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=200&q=60' }}
+            style={va.thumbnail}
+          />
+          <View style={va.playOverlay}>
+            <Play size={12} color="#fff" fill="#fff" />
+          </View>
+          <View style={va.durationPill}>
+            <Text style={va.durationText}>0:15</Text>
+          </View>
+        </View>
+
+        <View style={va.bannerInfo}>
+          <View style={va.bannerTitleRow}>
+            <Check size={14} color={colors.success} strokeWidth={2.5} />
+            <Text style={va.bannerTitle}>Video Tour Attached</Text>
+          </View>
+          <Text style={va.bannerSubtitle}>AI-generated property walkthrough</Text>
+        </View>
+      </View>
+
+      <Pressable onPress={onViewVideo} hitSlop={8}>
+        <Text style={va.viewText}>View</Text>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 // ─── No image placeholder ──────────────────────────────────
 
 function NoImagePlaceholder() {
@@ -267,17 +306,18 @@ function ImageGallery({ images }: { images: string[] }) {
 export default function PreviewListingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const params = useLocalSearchParams<{ withImages?: string; videoGenerating?: string }>();
+  const params = useLocalSearchParams<{ withImages?: string; videoGenerating?: string; videoAttached?: string }>();
 
   const listing = MOCK_LISTING;
   const images = params.withImages === '1' ? MOCK_APARTMENT_IMAGES : [];
   const hasImages = images.length > 0;
   const isVideoGenerating = params.videoGenerating === '1';
+  const isVideoAttached = params.videoAttached === '1';
   const completionPercent = Math.round(
     (listing.completedFields / listing.totalFields) * 100
   );
 
-  const [showVideoBanner, setShowVideoBanner] = useState(isVideoGenerating);
+  const [showVideoBanner, setShowVideoBanner] = useState(isVideoGenerating && !isVideoAttached);
 
   const handlePostListing = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -312,6 +352,11 @@ export default function PreviewListingScreen() {
         {/* Video generation banner */}
         {showVideoBanner && (
           <VideoGenerationBanner onDismiss={handleDismissVideoBanner} />
+        )}
+
+        {/* Video attached confirmation */}
+        {isVideoAttached && (
+          <VideoAttachedBanner onViewVideo={() => router.push('/listing/videos')} />
         )}
 
         {/* Section title */}
@@ -511,6 +556,85 @@ const vs = StyleSheet.create({
     fontSize: fontSizes.xs,
     lineHeight: lineHeights.xs,
     color: colors.neutral[500],
+  },
+});
+
+// ─── Video attached styles ───────────────────────────────────
+
+const va = StyleSheet.create({
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.primary[50],
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.primary[100],
+  },
+  bannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  thumbnailWrap: {
+    width: 56,
+    height: 42,
+    borderRadius: 8,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  thumbnail: {
+    width: '100%',
+    height: '100%',
+  },
+  playOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  durationPill: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  durationText: {
+    fontFamily: fontFamilies.bodyMedium,
+    fontSize: 8,
+    color: '#fff',
+  },
+  bannerInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  bannerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  bannerTitle: {
+    fontFamily: fontFamilies.headingSemibold,
+    fontSize: fontSizes.sm,
+    lineHeight: lineHeights.sm,
+    color: colors.neutral[900],
+  },
+  bannerSubtitle: {
+    fontFamily: fontFamilies.body,
+    fontSize: fontSizes.xs,
+    lineHeight: lineHeights.xs,
+    color: colors.neutral[500],
+  },
+  viewText: {
+    fontFamily: fontFamilies.headingSemibold,
+    fontSize: fontSizes.xs,
+    lineHeight: lineHeights.xs,
+    color: colors.primary[600],
   },
 });
 

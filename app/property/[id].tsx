@@ -1,19 +1,33 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable, useWindowDimensions, FlatList } from 'react-native';
+import React, { useState, useRef, useCallback } from 'react';
+import { View, Text, ScrollView, Pressable, useWindowDimensions, FlatList, Modal, StatusBar, StyleSheet, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSpring,
+  interpolate,
+  Extrapolation,
+  runOnJS,
+} from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import * as Haptics from 'expo-haptics';
 import {
   ChevronLeft, Heart, Share2, MapPin, Bed, Bath, Maximize2, Building2,
-  Compass, Armchair, Sparkles, Phone, Star, ShieldCheck, ChevronRight,
+  Compass, Armchair, Sparkles, Phone, Star, ShieldCheck, ChevronRight, X,
+  MessageCircle,
 } from 'lucide-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MatchScoreBadge } from '../../src/components/ui/Badge';
 import { Button } from '../../src/components/ui/Button';
 import { usePropertyStore } from '../../src/stores/propertyStore';
+import { useChatStore } from '../../src/stores/chatStore';
 import { mockProperties } from '../../src/mocks/properties';
 import { formatCurrency } from '../../src/utils/formatCurrency';
 import { colors } from '../../src/theme/colors';
+import { fontFamilies, fontSizes, lineHeights } from '../../src/theme/typography';
 
 function MatchBreakdownBar({ label, value }: { label: string; value: number }) {
   return (
@@ -27,18 +41,244 @@ function MatchBreakdownBar({ label, value }: { label: string; value: number }) {
   );
 }
 
+// ─── Fullscreen image viewer ────────────────────────────────
+
+function FullscreenImageViewer({
+  visible,
+  images,
+  initialIndex,
+  onClose,
+}: {
+  visible: boolean;
+  images: string[];
+  initialIndex: number;
+  onClose: () => void;
+}) {
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const flatListRef = useRef<FlatList>(null);
+  const [activeIndex, setActiveIndex] = useState(initialIndex);
+  const translateY = useSharedValue(0);
+  const backdropOpacity = useSharedValue(1);
+
+  const handleClose = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onClose();
+  }, [onClose]);
+
+  // Drag down to dismiss
+  const panGesture = Gesture.Pan()
+    .onUpdate((e) => {
+      if (e.translationY > 0) {
+        translateY.value = e.translationY;
+        backdropOpacity.value = interpolate(
+          e.translationY,
+          [0, screenHeight * 0.35],
+          [1, 0.2],
+          Extrapolation.CLAMP,
+        );
+      }
+    })
+    .onEnd((e) => {
+      if (e.translationY > 120 || e.velocityY > 800) {
+        translateY.value = withTiming(screenHeight, { duration: 250 });
+        backdropOpacity.value = withTiming(0, { duration: 200 });
+        runOnJS(handleClose)();
+      } else {
+        translateY.value = withSpring(0, { damping: 20, stiffness: 200 });
+        backdropOpacity.value = withSpring(1, { damping: 20 });
+      }
+    });
+
+  const containerStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: backdropOpacity.value,
+  }));
+
+  // Reset state when opening
+  React.useEffect(() => {
+    if (visible) {
+      translateY.value = 0;
+      backdropOpacity.value = 1;
+      setActiveIndex(initialIndex);
+      // Scroll to the initial image
+      setTimeout(() => {
+        flatListRef.current?.scrollToIndex({ index: initialIndex, animated: false });
+      }, 50);
+    }
+  }, [visible, initialIndex]);
+
+  if (!visible) return null;
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={handleClose}
+    >
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+
+      {/* Backdrop */}
+      <Animated.View
+        style={[StyleSheet.absoluteFill, { backgroundColor: '#000' }, backdropStyle]}
+      />
+
+      <GestureDetector gesture={panGesture}>
+        <Animated.View style={[{ flex: 1, justifyContent: 'center' }, containerStyle]}>
+          {/* Image carousel */}
+          <FlatList
+            ref={flatListRef}
+            data={images}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            initialScrollIndex={initialIndex}
+            getItemLayout={(_, index) => ({
+              length: screenWidth,
+              offset: screenWidth * index,
+              index,
+            })}
+            onMomentumScrollEnd={(e) => {
+              const newIndex = Math.round(e.nativeEvent.contentOffset.x / screenWidth);
+              setActiveIndex(newIndex);
+            }}
+            renderItem={({ item }) => (
+              <View style={{ width: screenWidth, height: screenHeight, justifyContent: 'center' }}>
+                <Image
+                  source={{ uri: item }}
+                  style={{ width: screenWidth, height: screenWidth * 0.75 }}
+                  contentFit="contain"
+                />
+              </View>
+            )}
+            keyExtractor={(_, i) => String(i)}
+          />
+
+          {/* Top bar */}
+          <View style={{
+            position: 'absolute',
+            top: insets.top + 12,
+            left: 0,
+            right: 0,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingHorizontal: 16,
+          }}>
+            {/* Counter */}
+            <View style={fs.counterPill}>
+              <Text style={fs.counterText}>{activeIndex + 1} / {images.length}</Text>
+            </View>
+
+            {/* Close */}
+            <Pressable onPress={handleClose} hitSlop={12} style={fs.closeBtn}>
+              <X size={18} color="#fff" />
+            </Pressable>
+          </View>
+
+          {/* Bottom dots */}
+          {images.length > 1 && (
+            <View style={fs.dotsRow}>
+              {images.map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    fs.dot,
+                    i === activeIndex ? fs.dotActive : fs.dotInactive,
+                  ]}
+                />
+              ))}
+            </View>
+          )}
+
+          {/* Drag indicator */}
+          <View style={{
+            position: 'absolute',
+            bottom: insets.bottom + 8,
+            alignSelf: 'center',
+            width: 36,
+            height: 4,
+            borderRadius: 2,
+            backgroundColor: 'rgba(255,255,255,0.3)',
+          }} />
+        </Animated.View>
+      </GestureDetector>
+    </Modal>
+  );
+}
+
+const fs = StyleSheet.create({
+  counterPill: {
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  counterText: {
+    fontFamily: fontFamilies.bodyMedium,
+    fontSize: fontSizes.xs,
+    color: '#fff',
+  },
+  closeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dotsRow: {
+    position: 'absolute',
+    bottom: 48,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
+  dotActive: {
+    backgroundColor: '#fff',
+  },
+  dotInactive: {
+    backgroundColor: 'rgba(255,255,255,0.35)',
+  },
+});
+
+// ─── Main screen ──────────────────────────────────────────
+
 export default function PropertyDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { isPropertySaved, saveProperty, unsaveProperty } = usePropertyStore();
+  const { createConversation, getConversationByPropertyId } = useChatStore();
   const [imageIndex, setImageIndex] = useState(0);
+
+  const [showFullscreen, setShowFullscreen] = useState(false);
+  const [fullscreenIndex, setFullscreenIndex] = useState(0);
+  const mainCarouselRef = useRef<ScrollView>(null);
 
   const property = mockProperties.find((p) => p.id === id) ?? mockProperties[0];
   const saved = isPropertySaved(property.id);
 
   const imageHeight = Math.min(Math.round(screenHeight * 0.38), 320);
+
+  const openFullscreen = useCallback((index: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setFullscreenIndex(index);
+    setShowFullscreen(true);
+  }, []);
 
   const toggleSave = () => {
     if (saved) unsaveProperty(property.id);
@@ -50,24 +290,28 @@ export default function PropertyDetailScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 + insets.bottom }}>
         {/* Image Carousel */}
         <View style={{ height: imageHeight, position: 'relative' }}>
-          <FlatList
-            data={property.images}
+          <ScrollView
+            ref={mainCarouselRef}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
+            bounces={false}
             onMomentumScrollEnd={(e) => {
               setImageIndex(Math.round(e.nativeEvent.contentOffset.x / screenWidth));
             }}
-            renderItem={({ item }) => (
-              <Image source={{ uri: item }} style={{ width: screenWidth, height: imageHeight }} contentFit="cover" />
-            )}
-            keyExtractor={(_, i) => String(i)}
-          />
+          >
+            {property.images.map((uri, index) => (
+              <Pressable key={index} onPress={() => openFullscreen(index)}>
+                <Image source={{ uri }} style={{ width: screenWidth, height: imageHeight }} contentFit="cover" />
+              </Pressable>
+            ))}
+          </ScrollView>
           <LinearGradient
             colors={['rgba(0,0,0,0.4)', 'transparent', 'transparent', 'rgba(0,0,0,0.3)']}
             style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            pointerEvents="none"
           />
-          <SafeAreaView edges={['top']} className="absolute top-0 left-0 right-0">
+          <SafeAreaView edges={['top']} className="absolute top-0 left-0 right-0" pointerEvents="box-none">
             <View className="flex-row items-center justify-between px-4 py-2">
               <Pressable onPress={() => router.back()} className="w-10 h-10 rounded-full bg-black/30 items-center justify-center">
                 <ChevronLeft size={24} color="white" />
@@ -82,7 +326,7 @@ export default function PropertyDetailScreen() {
               </View>
             </View>
           </SafeAreaView>
-          <View className="absolute bottom-4 left-0 right-0 flex-row justify-center gap-1.5">
+          <View className="absolute bottom-4 left-0 right-0 flex-row justify-center gap-1.5" pointerEvents="none">
             {property.images.map((_, i) => (
               <View key={i} className={`w-2 h-2 rounded-full ${i === imageIndex ? 'bg-white' : 'bg-white/40'}`} />
             ))}
@@ -177,6 +421,41 @@ export default function PropertyDetailScreen() {
             </View>
             <ChevronRight size={20} color={colors.neutral[400]} />
           </Pressable>
+
+          {/* Message Agent Button */}
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              const existing = getConversationByPropertyId(property.id);
+              if (existing) {
+                router.push(`/chat/${existing.id}`);
+              } else {
+                const convId = createConversation(property);
+                router.push(`/chat/${convId}`);
+              }
+            }}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              backgroundColor: colors.primary[50],
+              borderWidth: 1,
+              borderColor: colors.primary[200],
+              borderRadius: 12,
+              paddingVertical: 14,
+              marginBottom: 24,
+            }}
+          >
+            <MessageCircle size={18} color={colors.primary[600]} />
+            <Text style={{
+              fontFamily: fontFamilies.headingSemibold,
+              fontSize: fontSizes.base,
+              color: colors.primary[700],
+            }}>
+              Message Agent
+            </Text>
+          </Pressable>
         </View>
       </ScrollView>
 
@@ -202,6 +481,15 @@ export default function PropertyDetailScreen() {
           />
         </View>
       </View>
+
+      <FullscreenImageViewer
+        visible={showFullscreen}
+        images={property.images}
+        initialIndex={fullscreenIndex}
+        onClose={() => {
+          setShowFullscreen(false);
+        }}
+      />
     </View>
   );
 }

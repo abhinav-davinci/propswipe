@@ -1,16 +1,17 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import * as Haptics from 'expo-haptics';
 import { useFeedStore } from '../stores/feedStore';
 import { usePropertyStore } from '../stores/propertyStore';
 import { useProfileStore } from '../stores/profileStore';
 import { generateFeed, generateMoreProperties } from '../mocks/feedGenerator';
-import type { SwipeDirection } from '../types/property';
+import type { SwipeDirection, Property } from '../types/property';
 import type { FeedItem } from '../types/feed';
 
 export function useCardDeck() {
   const { cards, currentIndex, setCards, addCards, advanceCard, addSwipeAction } = useFeedStore();
   const { saveProperty, superLikeProperty, passProperty } = usePropertyStore();
   const { incrementSwipes, incrementSaved } = useProfileStore();
+  const lastSwipedPropertyRef = useRef<Property | null>(null);
 
   useEffect(() => {
     if (cards.length === 0) {
@@ -50,6 +51,7 @@ export function useCardDeck() {
           case 'right':
             saveProperty(property);
             incrementSaved();
+            lastSwipedPropertyRef.current = property;
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             break;
           case 'superlike':
@@ -69,11 +71,18 @@ export function useCardDeck() {
     [currentIndex, cards]
   );
 
+  const getLastSwipedProperty = useCallback(() => {
+    const property = lastSwipedPropertyRef.current;
+    lastSwipedPropertyRef.current = null;
+    return property;
+  }, []);
+
   return {
     currentCard,
     nextCards,
     currentIndex,
     totalCards: cards.length,
     handleSwipe,
+    getLastSwipedProperty,
   };
 }
