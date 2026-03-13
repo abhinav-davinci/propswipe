@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MapPin, Bed, Bath, Maximize2, Sparkles } from 'lucide-react-native';
+import { MapPin, Bed, Bath, Maximize2, Sparkles, Film } from 'lucide-react-native';
 import { MatchScoreBadge, Badge } from '../ui/Badge';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { colors } from '../../theme/colors';
+import { fontFamilies, fontSizes } from '../../theme/typography';
 import { useScreenLayout } from '../../hooks/useScreenLayout';
 import type { Property } from '../../types/property';
 
@@ -15,6 +16,9 @@ interface PropertyCardProps {
 
 export function PropertyCard({ property }: PropertyCardProps) {
   const { cardWidth, cardImageHeight, isSmallDevice } = useScreenLayout();
+
+  const hasVideo = !!property.videoTour;
+  const totalMedia = property.images.length + (hasVideo ? 1 : 0);
 
   return (
     <View
@@ -39,10 +43,16 @@ export function PropertyCard({ property }: PropertyCardProps) {
           <MatchScoreBadge score={property.matchScore} size={isSmallDevice ? 'sm' : 'md'} />
         </View>
 
-        {/* Tags */}
+        {/* Tags + Video Tour badge */}
         <View className="absolute top-3 left-3 flex-row gap-1.5">
           {property.isNew && <Badge label="New" variant="success" />}
           {property.isPremium && <Badge label="Premium" variant="warning" />}
+          {hasVideo && (
+            <View style={cardStyles.videoChip}>
+              <Film size={10} color={colors.white} />
+              <Text style={cardStyles.videoChipText}>Video Tour</Text>
+            </View>
+          )}
         </View>
 
         {/* Price overlay */}
@@ -59,10 +69,11 @@ export function PropertyCard({ property }: PropertyCardProps) {
           )}
         </View>
 
-        {/* Image count indicator */}
-        <View className="absolute bottom-3 right-4 bg-black/40 rounded-sm px-2 py-0.5">
+        {/* Media count indicator */}
+        <View className="absolute bottom-3 right-4 bg-black/40 rounded-sm px-2 py-0.5 flex-row items-center gap-1">
+          {hasVideo && <Film size={10} color={colors.white} />}
           <Text className="text-xs font-body text-white">
-            1/{property.images.length}
+            1/{totalMedia}
           </Text>
         </View>
       </View>
@@ -124,3 +135,20 @@ export function PropertyCard({ property }: PropertyCardProps) {
     </View>
   );
 }
+
+const cardStyles = StyleSheet.create({
+  videoChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  videoChipText: {
+    fontFamily: fontFamilies.bodyMedium,
+    fontSize: 10,
+    color: colors.white,
+  },
+});

@@ -17,11 +17,12 @@ import * as Haptics from 'expo-haptics';
 import {
   ChevronLeft, Heart, Share2, MapPin, Bed, Bath, Maximize2, Building2,
   Compass, Armchair, Sparkles, Phone, Star, ShieldCheck, ChevronRight, X,
-  MessageCircle,
+  MessageCircle, Film,
 } from 'lucide-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MatchScoreBadge } from '../../src/components/ui/Badge';
 import { Button } from '../../src/components/ui/Button';
+import { VideoSlide } from '../../src/components/media/VideoSlide';
 import { usePropertyStore } from '../../src/stores/propertyStore';
 import { useChatStore } from '../../src/stores/chatStore';
 import { mockProperties } from '../../src/mocks/properties';
@@ -274,11 +275,27 @@ export default function PropertyDetailScreen() {
 
   const imageHeight = Math.min(Math.round(screenHeight * 0.38), 320);
 
+  // Build carousel slides: hero image, then video (if any), then remaining images
+  type DetailSlide = { type: 'image'; uri: string } | { type: 'video' };
+  const detailSlides: DetailSlide[] = [];
+  detailSlides.push({ type: 'image', uri: property.images[0] });
+  if (property.videoTour) {
+    detailSlides.push({ type: 'video' });
+  }
+  for (let i = 1; i < property.images.length; i++) {
+    detailSlides.push({ type: 'image', uri: property.images[i] });
+  }
+
   const openFullscreen = useCallback((index: number) => {
+    // Only open fullscreen for image slides
+    const slide = detailSlides[index];
+    if (slide?.type === 'video') return;
+    // Map carousel index to images-only index for fullscreen viewer
+    const imageOnlyIndex = detailSlides.slice(0, index).filter((s) => s.type === 'image').length;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setFullscreenIndex(index);
+    setFullscreenIndex(imageOnlyIndex);
     setShowFullscreen(true);
-  }, []);
+  }, [property.images, property.videoTour]);
 
   const toggleSave = () => {
     if (saved) unsaveProperty(property.id);
@@ -288,7 +305,7 @@ export default function PropertyDetailScreen() {
   return (
     <View className="flex-1 bg-neutral-50">
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 + insets.bottom }}>
-        {/* Image Carousel */}
+        {/* Image/Video Carousel */}
         <View style={{ height: imageHeight, position: 'relative' }}>
           <ScrollView
             ref={mainCarouselRef}
@@ -300,17 +317,29 @@ export default function PropertyDetailScreen() {
               setImageIndex(Math.round(e.nativeEvent.contentOffset.x / screenWidth));
             }}
           >
-            {property.images.map((uri, index) => (
-              <Pressable key={index} onPress={() => openFullscreen(index)}>
-                <Image source={{ uri }} style={{ width: screenWidth, height: imageHeight }} contentFit="cover" />
-              </Pressable>
-            ))}
+            {detailSlides.map((slide, index) =>
+              slide.type === 'video' && property.videoTour ? (
+                <VideoSlide
+                  key="video"
+                  videoTour={property.videoTour}
+                  width={screenWidth}
+                  height={imageHeight}
+                  isActive={imageIndex === index}
+                />
+              ) : slide.type === 'image' ? (
+                <Pressable key={`img-${index}`} onPress={() => openFullscreen(index)}>
+                  <Image source={{ uri: slide.uri }} style={{ width: screenWidth, height: imageHeight }} contentFit="cover" />
+                </Pressable>
+              ) : null
+            )}
           </ScrollView>
-          <LinearGradient
-            colors={['rgba(0,0,0,0.4)', 'transparent', 'transparent', 'rgba(0,0,0,0.3)']}
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-            pointerEvents="none"
-          />
+          {detailSlides[imageIndex]?.type !== 'video' && (
+            <LinearGradient
+              colors={['rgba(0,0,0,0.4)', 'transparent', 'transparent', 'rgba(0,0,0,0.3)']}
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+              pointerEvents="none"
+            />
+          )}
           <SafeAreaView edges={['top']} className="absolute top-0 left-0 right-0" pointerEvents="box-none">
             <View className="flex-row items-center justify-between px-4 py-2">
               <Pressable onPress={() => router.back()} className="w-10 h-10 rounded-full bg-black/30 items-center justify-center">
@@ -326,9 +355,19 @@ export default function PropertyDetailScreen() {
               </View>
             </View>
           </SafeAreaView>
+          {/* Dot indicators */}
           <View className="absolute bottom-4 left-0 right-0 flex-row justify-center gap-1.5" pointerEvents="none">
-            {property.images.map((_, i) => (
-              <View key={i} className={`w-2 h-2 rounded-full ${i === imageIndex ? 'bg-white' : 'bg-white/40'}`} />
+            {detailSlides.map((slide, i) => (
+              <View
+                key={i}
+                style={[
+                  { width: 8, height: 8, borderRadius: 4 },
+                  i === imageIndex
+                    ? { backgroundColor: '#fff' }
+                    : { backgroundColor: 'rgba(255,255,255,0.4)' },
+                  slide.type === 'video' && { width: 12, borderRadius: 3 },
+                ]}
+              />
             ))}
           </View>
         </View>

@@ -41,6 +41,12 @@ export interface Agent {
   image: string;
 }
 
+export interface VideoTour {
+  url: string;
+  thumbnailUrl: string;
+  durationSeconds: number;
+}
+
 export interface Property {
   id: string;
   title: string;
@@ -51,6 +57,7 @@ export interface Property {
   location: PropertyLocation;
   specs: PropertySpecs;
   images: string[];
+  videoTour?: VideoTour;
   matchScore: number;
   matchBreakdown: MatchBreakdown;
   agent: Agent;
